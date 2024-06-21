@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prom-example
+  labels:
+    app.kubernetes.io/name: prom-example
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prom-example
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prom-example
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - arm64
+                - amd64
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+      containers:
+      - image: nilebox/prometheus-example-app@sha256:dab60d038c5d6915af5bcbe5f0279a22b95a8c8be254153e22d7cd81b21b84c5
+        name: prom-example
+        ports:
+        - name: metrics
+          containerPort: 1234
+        command:
+        - "/main"
+        - "--process-metrics"
+        - "--go-metrics"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prom-example-service
+  labels:
+    app.kubernetes.io/name: prom-example
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: prom-example
+  ports:
+    - port: 1234
+      targetPort: 1234
+      protocol: TCP
+      nodePort: 31234 
